@@ -175,7 +175,7 @@
 .sm-big-status-value-compact {
     padding: 0 0px 0px 1px;
     font-size: 0.6875em;
-    min-width: 38px;
+    min-width: 25px;
     text-align: right;
 } /* freq in text_items */
 

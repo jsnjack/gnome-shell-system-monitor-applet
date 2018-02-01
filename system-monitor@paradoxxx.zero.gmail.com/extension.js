@@ -1476,19 +1476,26 @@ const Freq = new Lang.Class({
         this.item_name = _('Freq');
         this.freq = 0;
         this.parent()
-        this.tip_format('MHz');
+        this.tip_format('GHz');
         this.update();
     },
     refresh: function () {
         let total_frequency = 0;
         let num_cpus = GTop.glibtop_get_sysinfo().ncpu;
         for (let i = 0; i < num_cpus; i++) {
-          total_frequency += parseInt(Shell.get_file_contents_utf8_sync('/sys/devices/system/cpu/cpu' + i + '/cpufreq/scaling_cur_freq'));
+            total_frequency += parseInt(Shell.get_file_contents_utf8_sync('/sys/devices/system/cpu/cpu' + i + '/cpufreq/scaling_cur_freq'));
         }
-        this.freq = Math.round(total_frequency / num_cpus / 1000);
+        this.freq = this._roundTo(total_frequency / num_cpus / 1000 / 1000, 1);
+    },
+    _roundTo: function (number, precision) {
+        var factor = Math.pow(10, precision);
+        return Math.round(number * factor) / factor;
     },
     _apply: function () {
         let value = this.freq.toString();
+        if (value[0] === '0') {
+            value = value.substring(1, value.length);
+        }
         this.text_items[0].text = value + ' ';
         this.vals[0] = value;
         this.tip_vals[0] = value;
@@ -1500,7 +1507,7 @@ const Freq = new Lang.Class({
                 style_class: Style.get('sm-big-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
-                text: 'MHz', style_class: Style.get('sm-perc-label'),
+                text: 'GHz', style_class: Style.get('sm-perc-label'),
                 y_align: Clutter.ActorAlign.CENTER})
         ];
     },
@@ -1509,7 +1516,7 @@ const Freq = new Lang.Class({
             new St.Label({
                 style_class: Style.get('sm-value')}),
             new St.Label({
-                text: 'MHz',
+                text: 'GHz',
                 style_class: Style.get('sm-label')})
         ];
     }
