@@ -20,7 +20,7 @@
 
 /* Ugly. This is here so that we don't crash old libnm-glib based shells unnecessarily
  * by loading the new libnm.so. Should go away eventually */
-const libnm_glib = imports.gi.GIRepository.Repository.get_default().is_registered("NMClient", "1.0");
+const libnm_glib = imports.gi.GIRepository.Repository.get_default().is_registered('NMClient', '1.0');
 
 let smDepsGtop = true;
 let smDepsNM = true;
@@ -537,13 +537,13 @@ const Bar = new Lang.Class({
         this.thickness = 15 * Style.text_scaling();
         this.fontsize = Style.bar_fontsize();
         this.parent(arguments);
-        this.actor.set_height(this.mounts.length * (3 * this.thickness) / 2);
+        this.actor.set_height(this.mounts.length * (3 * this.thickness));
     },
     _draw: function () {
         if (!this.actor.visible) {
             return;
         }
-        this.actor.set_height(this.mounts.length * (3 * this.thickness) / 2);
+        this.actor.set_height(this.mounts.length * (3 * this.thickness));
         let [width, height] = this.actor.get_surface_size();
         let cr = this.actor.get_context();
 
@@ -555,15 +555,21 @@ const Bar = new Lang.Class({
             GTop.glibtop_get_fsusage(this.gtop, this.mounts[mount]);
             let perc_full = (this.gtop.blocks - this.gtop.bfree) / this.gtop.blocks;
             Clutter.cairo_set_source_color(cr, this.colors[mount % this.colors.length]);
-            cr.moveTo(2 * x0, y0)
-            cr.relLineTo(perc_full * 0.6 * width, 0);
+
+            var text = this.mounts[mount];
+            if (text.length > 10) {
+                text = text.split("/").pop();
+            }
             cr.moveTo(0, y0 + this.thickness / 3);
-            cr.showText(this.mounts[mount]);
-            // cr.stroke();
+            cr.showText(text);
             cr.moveTo(width - x0, y0 + this.thickness / 3);
             cr.showText(Math.round(perc_full * 100).toString() + '%');
+            y0 += (5 * this.thickness) / 4;
+
+            cr.moveTo(0, y0)
+            cr.relLineTo(perc_full * width, 0);
             cr.stroke();
-            y0 += (3 * this.thickness) / 2;
+            y0 += (7 * this.thickness) / 4;
         }
         if (Compat.versionCompare(shell_Version, '3.7.4')) {
             cr.$dispose();
@@ -614,7 +620,11 @@ const Pie = new Lang.Class({
             Clutter.cairo_set_source_color(cr, this.colors[mount % this.colors.length]);
             arc(r, this.gtop.blocks - this.gtop.bfree, this.gtop.blocks, -pi / 2);
             cr.moveTo(0, yc - r + thickness / 2);
-            cr.showText(this.mounts[mount]);
+            var text = this.mounts[mount];
+            if (text.length > 10) {
+                text = text.split("/").pop();
+            }
+            cr.showText(text);
             cr.stroke();
             r -= (3 * thickness) / 2;
         }
@@ -683,6 +693,10 @@ const TipMenu = new Lang.Class({
         tipx = Math.max(tipx, monitor.x);
         tipx = Math.min(tipx, monitor.x + monitor.width - width);
         let tipy = Math.floor(ym);
+        // Hacky condition to determine if the status bar is at the top or at the bottom of the screen
+        if (allocation.y1 / monitor.height > 0.3) {
+            tipy = allocation.y1 - height; // If it is at the bottom, place the tooltip above instead of below
+        }
         this.actor.set_position(tipx, tipy);
     },
     open: function (animate) {
@@ -907,7 +921,7 @@ const ElementBase = new Lang.Class({
             let tipline = new TipItem();
             this.tipmenu.addMenuItem(tipline);
             tipline.actor.add(new St.Label({text: _(this.color_name[i])}));
-            this.tip_labels[i] = new St.Label();
+            this.tip_labels[i] = new St.Label({text: ''});
             tipline.actor.add(this.tip_labels[i]);
 
             this.tip_unit_labels[i] = new St.Label({text: unit[i]});
@@ -1132,6 +1146,7 @@ const Battery = new Lang.Class({
                 gicon: Gio.icon_new_for_string(this.icon),
                 style_class: Style.get('sm-status-icon')}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1143,6 +1158,7 @@ const Battery = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: '%',
@@ -1310,6 +1326,7 @@ const Cpu = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1320,6 +1337,7 @@ const Cpu = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: '%',
@@ -1425,6 +1443,7 @@ const Disk = new Lang.Class({
                 text: _('R'),
                 style_class: Style.get('sm-status-label')}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-disk-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1435,6 +1454,7 @@ const Disk = new Lang.Class({
                 text: _('W'),
                 style_class: Style.get('sm-status-label')}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-disk-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1446,20 +1466,22 @@ const Disk = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: Style.diskunits(),
                 style_class: Style.get('sm-label')}),
             new St.Label({
-                text: _('R'),
+                text: _(' R'),
                 style_class: Style.get('sm-label')}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: Style.diskunits(),
                 style_class: Style.get('sm-label')}),
             new St.Label({
-                text: _('W'),
+                text: _(' W'),
                 style_class: Style.get('sm-label')})
         ];
     },
@@ -1499,11 +1521,24 @@ const Freq = new Lang.Class({
         this.text_items[0].text = value + ' ';
         this.vals[0] = value;
         this.tip_vals[0] = value;
-        this.menu_items[0].text = value;
+        if (Style.get('') !== '-compact') {
+            this.menu_items[0].text = value;
+        } else {
+            this.menu_items[0].text = this._pad(value,4);
+        }
+    },
+    // pad a string with leading spaces
+    _pad: function (number, length) {
+        var str = '' + number;
+        while (str.length < length) {
+            str = ' ' + str;
+        }
+        return str;
     },
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-big-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1514,6 +1549,7 @@ const Freq = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: 'GHz',
@@ -1594,7 +1630,7 @@ const Mem = new Lang.Class({
         this.menu_items[0].text = this.tip_vals[0].toLocaleString(Locale);
         if (Style.get('') !== '-compact') {
             this.menu_items[3].text = this._pad(this.mem[0]).toLocaleString(Locale) +
-                '  /  ' + this._pad(this.total).toLocaleString(Locale);
+                ' / ' + this._pad(this.total).toLocaleString(Locale);
         } else {
             this.menu_items[3].text = this._pad(this.mem[0]).toLocaleString(Locale) +
                 '/' + this._pad(this.total).toLocaleString(Locale);
@@ -1603,6 +1639,7 @@ const Mem = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1617,12 +1654,16 @@ const Mem = new Lang.Class({
         }
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: '%',
                 style_class: Style.get('sm-label')}),
-            new St.Label(),
             new St.Label({
+                text: '',
+                style_class: Style.get('sm-label')}),
+            new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({text: unit,
                 style_class: Style.get('sm-label')})
@@ -1716,11 +1757,11 @@ const Net = new Lang.Class({
         this.last_time = time;
     },
 
-    // pad a string with leading 0s
+    // pad a string with leading spaces
     _pad: function (number, length) {
         var str = '' + number;
         while (str.length < length) {
-            str = '0' + str;
+            str = ' ' + str;
         }
         return str;
     },
@@ -1769,8 +1810,8 @@ const Net = new Lang.Class({
             this.menu_items[0].text = this.text_items[1].text = this.tip_vals[0].toString();
             this.menu_items[3].text = this.text_items[4].text = this.tip_vals[2].toString();
         } else {
-            this.menu_items[0].text = this.text_items[1].text = this._pad(this.tip_vals[0].toString(), 3);
-            this.menu_items[3].text = this.text_items[4].text = this._pad(this.tip_vals[2].toString(), 3);
+            this.menu_items[0].text = this.text_items[1].text = this._pad(this.tip_vals[0].toString(), 4);
+            this.menu_items[3].text = this.text_items[4].text = this._pad(this.tip_vals[2].toString(), 4);
         }
     },
     create_text_items: function () {
@@ -1779,6 +1820,7 @@ const Net = new Lang.Class({
                 icon_size: 2 * IconSize / 3 * Style.iconsize(),
                 icon_name: 'go-down-symbolic'}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-net-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1789,6 +1831,7 @@ const Net = new Lang.Class({
                 icon_size: 2 * IconSize / 3 * Style.iconsize(),
                 icon_name: 'go-up-symbolic'}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-net-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1800,20 +1843,22 @@ const Net = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: _('KiB/s'),
                 style_class: Style.get('sm-label')}),
             new St.Label({
-                text: _('Down'),
+                text: _(' Down'),
                 style_class: Style.get('sm-label')}),
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
-                text: _('KiB/s'),
+                text: _(' KiB/s'),
                 style_class: Style.get('sm-label')}),
             new St.Label({
-                text: _('Up'),
+                text: _(' Up'),
                 style_class: Style.get('sm-label')})
         ];
     }
@@ -1882,7 +1927,7 @@ const Swap = new Lang.Class({
         this.menu_items[0].text = this.tip_vals[0].toString();
         if (Style.get('') !== '-compact') {
             this.menu_items[3].text = this._pad(this.swap).toLocaleString(Locale) +
-                '  /  ' + this._pad(this.total).toLocaleString(Locale);
+                ' / ' + this._pad(this.total).toLocaleString(Locale);
         } else {
             this.menu_items[3].text = this._pad(this.swap).toLocaleString(Locale) +
                 '/' + this._pad(this.total).toLocaleString(Locale);
@@ -1892,6 +1937,7 @@ const Swap = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1907,12 +1953,16 @@ const Swap = new Lang.Class({
         }
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: '%',
                 style_class: Style.get('sm-label')}),
-            new St.Label(),
             new St.Label({
+                text: '',
+                style_class: Style.get('sm-label')}),
+            new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: _(unit),
@@ -1970,6 +2020,7 @@ const Thermal = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -1981,6 +2032,7 @@ const Thermal = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: this.temperature_symbol(),
@@ -2034,6 +2086,7 @@ const Fan = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -2044,6 +2097,7 @@ const Fan = new Lang.Class({
     create_menu_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: _('rpm'),
@@ -2086,13 +2140,22 @@ const Gpu = new Lang.Class({
             let path = Me.dir.get_path();
             let script = ['/bin/bash', path + '/gpu_usage.sh'];
 
-            let [, pid, , out_fd, ] = GLib.spawn_async_with_pipes(
+            let [, pid, in_fd, out_fd, err_fd] = GLib.spawn_async_with_pipes(
                 null,
                 script,
                 null,
                 GLib.SpawnFlags.DO_NOT_REAP_CHILD,
                 null);
 
+            let _tmp_stream = new Gio.DataInputStream({
+                base_stream: new Gio.UnixInputStream({fd: in_fd})
+            });
+            _tmp_stream.close(null);
+            _tmp_stream = new Gio.DataInputStream({
+                base_stream: new Gio.UnixInputStream({fd: err_fd})
+            });
+            _tmp_stream.close(null);
+            
             // Let's buffer the command's output - that's an input for us !
             this._process_stream = new Gio.DataInputStream({
                 base_stream: new Gio.UnixInputStream({fd: out_fd})
@@ -2179,6 +2242,7 @@ const Gpu = new Lang.Class({
     create_text_items: function () {
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-status-value'),
                 y_align: Clutter.ActorAlign.CENTER}),
             new St.Label({
@@ -2194,12 +2258,16 @@ const Gpu = new Lang.Class({
         }
         return [
             new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: '%',
                 style_class: Style.get('sm-label')}),
-            new St.Label(),
             new St.Label({
+                text: '',
+                style_class: Style.get('sm-label')}),
+            new St.Label({
+                text: '',
                 style_class: Style.get('sm-value')}),
             new St.Label({
                 text: unit,
@@ -2237,6 +2305,11 @@ var init = function () {
         Locale = Locale.split('_')[0];
     }
 
+    IconSize = Math.round(Panel.PANEL_ICON_SIZE * 4 / 5);
+};
+
+var enable = function () {
+    log('System monitor applet enabling');
     Schema = Convenience.getSettings();
 
     Style = new smStyleManager();
@@ -2244,11 +2317,6 @@ var init = function () {
 
     Background = color_from_string(Schema.get_string('background'));
 
-    IconSize = Math.round(Panel.PANEL_ICON_SIZE * 4 / 5);
-};
-
-var enable = function () {
-    log('System monitor applet enabling');
     if (!(smDepsGtop && smDepsNM)) {
         Main.__sm = {
             smdialog: new smDialog()
@@ -2430,7 +2498,14 @@ var disable = function () {
     //        Main.__sm.elts[i].hide_system_icon(false);
     // }
 
-    MountsMonitor.disconnect();
+    if (MountsMonitor) {
+        MountsMonitor.disconnect();
+        MountsMonitor = null;
+    }
+
+    if (Style) {
+        Style = null;
+    }
 
     Schema.run_dispose();
     for (let eltName in Main.__sm.elts) {
